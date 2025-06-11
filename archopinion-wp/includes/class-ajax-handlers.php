@@ -55,36 +55,61 @@ class ArchOpinion_Ajax_Handlers {
                 wp_delete_file( $image_path ); // Clean up uploaded file
                 wp_send_json_error( array( 'message' => 'Error from Gemini API: ' . $analysis_result['error'] ) );
             } else {
-                // Generate PDF report
-                $report_generator = new ArchOpinion_Report_Generator();
-                $pdf_content = $report_generator->generate_pdf_report( $analysis_result['analysis'], $image_path );
+                // Prepare data for the report generator
+                // Assuming $analysis_result from Gemini client IS the structured data needed for the report's 'analysis_result' key.
+                // And request_data needs to be assembled from POST or other sources if available.
+                // For now, let's simulate some request_data. In a real scenario, this would come from the form submission.
+                $request_data_for_report = [
+                    'project_address' => isset($_POST['project_address']) ? sanitize_text_field($_POST['project_address']) : 'N/A',
+                    'project_type' => isset($_POST['project_type']) ? sanitize_text_field($_POST['project_type']) : 'N/A',
+                    'council' => isset($_POST['council']) ? sanitize_text_field($_POST['council']) : 'N/A',
+                    'planning_reference' => isset($_POST['planning_reference']) ? sanitize_text_field($_POST['planning_reference']) : 'N/A',
+                ];
 
-                if (is_wp_error($pdf_content)) {
+                $report_input_data = [
+                    'request_data' => $request_data_for_report,
+                    'analysis_result' => $analysis_result // Directly passing the Gemini output.
+                                                          // This assumes $analysis_result is already the structured array.
+                                                          // If $analysis_result['analysis'] is the text blob and we need to parse it,
+                                                          // this part would need adjustment, or the Gemini client would.
+                ];
+
+                // Generate HTML report
+                $report_generator = new ArchOpinion_Report_Generator();
+                // The first argument to generate_report is $analysis_data which includes 'request_data' and 'analysis_result'
+                // The second argument is $image_path
+                $report_info = $report_generator->generate_report( $report_input_data, $image_path );
+
+                if ( is_wp_error( $report_info ) ) {
                     wp_delete_file( $image_path ); // Clean up
-                    wp_send_json_error( array( 'message' => 'Failed to generate PDF report: ' . $pdf_content->get_error_message() ) );
+                    wp_send_json_error( array( 'message' => 'Failed to generate HTML report: ' . $report_info->get_error_message() ) );
                     return;
                 }
 
-                // Save report or make it available for download
-                // For this example, let's save it to the uploads directory and provide a link.
-                $upload_dir = wp_upload_dir();
-                $report_filename = 'ArchOpinion_Report_' . time() . '.pdf';
-                $report_path = $upload_dir['path'] . '/' . $report_filename;
-                $report_url = $upload_dir['url'] . '/' . $report_filename;
-
-                if ( file_put_contents( $report_path, $pdf_content ) === false ) {
-                     wp_delete_file( $image_path ); // Clean up
-                     wp_send_json_error( array( 'message' => 'Failed to save PDF report.' . $report_path ) );
-                     return;
-                }
+                // $report_info already contains 'path' and 'url'. File is already saved by generate_report.
 
                 wp_delete_file( $image_path ); // Clean up the original uploaded image after successful report generation
 
+                // If the Gemini client returns $analysis_result['analysis'] as the main text output
+                // and $analysis_result itself is the structured data.
+                // We need to decide what to send back in 'analysis' for direct display if anything.
+                // For now, let's assume the main text for quick display is $analysis_result['aiRecommendationSummary'] or similar.
+                // Or, if $analysis_result from Gemini is *just* text, then that's $analysis_result['analysis'].
+                // This part needs clarification based on actual Gemini client output vs generate_report input.
+                // Let's assume $analysis_result (from Gemini) is the structured data.
+                // And for the 'analysis' field in JSON response (quick preview), we might use a summary.
+                $display_analysis_summary = isset($analysis_result['aiRecommendationSummary']) ? $analysis_result['aiRecommendationSummary'] : 'See full report for details.';
+                if (is_array($analysis_result) && isset($analysis_result['analysis']) && is_string($analysis_result['analysis']) && empty($display_analysis_summary)) {
+                    // Fallback if the above assumption is wrong and old structure of $analysis_result['analysis'] (text blob) exists
+                     $display_analysis_summary = $analysis_result['analysis'];
+                }
+
+
                 wp_send_json_success( array(
                     'message' => 'Analysis complete.',
-                    'analysis' => $analysis_result['analysis'],
-                    'report_url' => $report_url,
-                    'image_url' => $image_url // Send back the processed image URL if needed for display
+                    'analysis' => $display_analysis_summary, // Send a summary or relevant part for immediate display
+                    'report_url' => $report_info['url'],    // URL to the new HTML report
+                    'image_url' => $image_url
                 ) );
             }
         } else {

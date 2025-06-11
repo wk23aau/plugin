@@ -35,6 +35,8 @@ jQuery(document).ready(function($) {
                     $outputDiv.html(response.data.analysis.replace(/\n/g, '<br>')); // Display analysis
                     if(response.data.report_url) {
                         $downloadLink.attr('href', response.data.report_url);
+                        $downloadLink.attr('target', '_blank'); // Open in new tab
+                        $downloadLink.text('View Report'); // Change button text
                         $downloadLinkContainer.show();
                     }
                     $resultsContainer.show();

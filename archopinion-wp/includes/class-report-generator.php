@@ -1,95 +1,179 @@
 <?php
 
-// Ensure TCPDF is loaded. Adjust the path as necessary if using a different structure.
-// This assumes TCPDF is installed via Composer or manually in a 'vendor' directory.
-if (file_exists(ARCHOPINION_PLUGIN_DIR . 'vendor/tecnickcom/tcpdf/tcpdf.php')) {
-    require_once ARCHOPINION_PLUGIN_DIR . 'vendor/tecnickcom/tcpdf/tcpdf.php';
-} elseif (class_exists('TCPDF')) {
-    // TCPDF is already loaded (e.g., by another plugin or theme)
-} else {
-    // Fallback or error if TCPDF is not found
-    // For now, we'll let it fail if not present, but a real plugin might handle this more gracefully.
-}
-
-
 class ArchOpinion_Report_Generator {
 
-    public function generate_pdf_report( $analysis_data, $image_path ) {
-        if ( ! class_exists( 'TCPDF' ) ) {
-            return new WP_Error('tcpdf_missing', 'TCPDF library is not available. Please install it.');
+    public function generate_report( $analysis_data, $image_path = null ) { // Added $image_path = null for consistency if not used
+        // Ensure $analysis_data and its keys are set to avoid errors
+        $request_data = isset($analysis_data['request_data']) && is_array($analysis_data['request_data']) ? $analysis_data['request_data'] : [];
+        $analysis_result = isset($analysis_data['analysis_result']) && is_array($analysis_data['analysis_result']) ? $analysis_data['analysis_result'] : [];
+
+        // Create a unique filename
+        $filename = 'report_' . date('Ymd_His') . '_' . uniqid() . '.html';
+
+        // Define the path to the custom reports directory
+        $upload_dir = wp_upload_dir();
+        $report_dir = $upload_dir['basedir'] . '/archopinion-reports/';
+
+        // Create the directory if it doesn't exist
+        if ( ! file_exists( $report_dir ) ) {
+            wp_mkdir_p( $report_dir );
         }
 
-        try {
-            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $filepath = $report_dir . $filename;
 
-            // Set document information
-            $pdf->SetCreator(PDF_CREATOR);
-            $pdf->SetAuthor('ArchOpinion Plugin');
-            $pdf->SetTitle('Architectural Analysis Report');
-            $pdf->SetSubject('Analysis Report');
+        // Start HTML content
+        $html_content = '<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archopinion Analysis Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }
+        h1, h2, h3 { color: #1a472a; }
+        h1 { text-align: center; border-bottom: 2px solid #1a472a; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background-color: #f2f2f2; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 5px; background-color: #f9f9f9;}
+        .section h3 { margin-top: 0; color: #265c3b; }
+        .status-compliant { color: green; font-weight: bold; }
+        .status-partially-compliant { color: orange; font-weight: bold; }
+        .status-non-compliant { color: red; font-weight: bold; }
+        ul { padding-left: 20px; margin-top: 0; }
+        dl { margin-bottom: 15px; }
+        dt { font-weight: bold; color: #265c3b; }
+        dd { margin-left: 0; margin-bottom: 10px; padding-left: 15px; border-left: 3px solid #eee; }
+        footer { margin-top: 40px; text-align: center; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <h1>AI Architectural Review Report</h1>';
 
-            // Add a page
-            $pdf->AddPage();
+        // Project Information
+        $html_content .= '<div class="section">
+        <h2>Project Information</h2>';
+        $html_content .= '<dl>';
+        $html_content .= '<dt>Project Address:</dt><dd>' . (isset($request_data['project_address']) ? esc_html($request_data['project_address']) : 'N/A') . '</dd>';
+        $html_content .= '<dt>Project Type:</dt><dd>' . (isset($request_data['project_type']) ? esc_html($request_data['project_type']) : 'N/A') . '</dd>';
+        $html_content .= '<dt>Council:</dt><dd>' . (isset($request_data['council']) ? esc_html($request_data['council']) : 'N/A') . '</dd>';
+        $html_content .= '<dt>Planning Reference:</dt><dd>' . (isset($request_data['planning_reference']) ? esc_html($request_data['planning_reference']) : 'N/A') . '</dd>';
+        $html_content .= '<dt>Analysis Date:</dt><dd>' . esc_html(date('F j, Y, g:i a')) . '</dd>';
+        $html_content .= '</dl>';
+        $html_content .= '</div>';
 
-            // Set font
-            $pdf->SetFont('helvetica', '', 12);
-
-            // Title
-            $pdf->Write(0, 'Architectural Analysis Report', '', 0, 'C', true, 0, false, false, 0);
-            $pdf->Ln(10);
-
-            // Analysis Section
-            $pdf->SetFont('helvetica', 'B', 12);
-            $pdf->Write(0, 'Analysis:', '', 0, 'L', true, 0, false, false, 0);
-            $pdf->SetFont('helvetica', '', 11);
-            $pdf->Write(0, $analysis_data, '', 0, 'L', true, 0, false, false, 0);
-            $pdf->Ln(10);
-
-            // Image Section
-            if ( $image_path && file_exists( $image_path ) ) {
-                $pdf->SetFont('helvetica', 'B', 12);
-                $pdf->Write(0, 'Analyzed Image:', '', 0, 'L', true, 0, false, false, 0);
-                // Embed image. Adjust X, Y, W, H, Type, Link, Align, Resize, DPI, PAlign, IsMask, ImgMask, Border, Fitbox, Hidden, Fitonpage
-                // The image function in TCPDF can be tricky with paths and types.
-                // Using '@' to suppress errors from getimagesize if the image is invalid, and then checking the result.
-                $image_type = '';
-                if (function_exists('exif_imagetype')) {
-                    $image_type_constant = @exif_imagetype($image_path);
-                    if ($image_type_constant === IMAGETYPE_GIF) $image_type = 'GIF';
-                    elseif ($image_type_constant === IMAGETYPE_JPEG) $image_type = 'JPEG';
-                    elseif ($image_type_constant === IMAGETYPE_PNG) $image_type = 'PNG';
-                    // Add more types if needed
-                } else {
-                    // Fallback if exif_imagetype is not available (less reliable)
-                    $image_info = @getimagesize($image_path);
-                    if ($image_info !== false) {
-                        $image_type = strtoupper(str_replace('image/', '', $image_info['mime']));
+        // Regulatory Framework Analysis
+        $aiReviewFramework = isset($analysis_result['aiReviewFramework']) && is_array($analysis_result['aiReviewFramework']) ? $analysis_result['aiReviewFramework'] : [];
+        if (!empty($aiReviewFramework)) {
+            $html_content .= '<div class="section">
+            <h2>Regulatory Framework Analysis</h2>';
+            foreach ($aiReviewFramework as $framework) {
+                $html_content .= '<h3>' . (isset($framework['framework_name']) ? esc_html($framework['framework_name']) : 'Unnamed Framework') . '</h3>';
+                $html_content .= '<dl>';
+                if (isset($framework['key_considerations']) && is_array($framework['key_considerations']) && !empty($framework['key_considerations'])) {
+                    $html_content .= '<dt>Key Considerations:</dt><dd><ul>';
+                    foreach ($framework['key_considerations'] as $consideration) {
+                        $html_content .= '<li>' . esc_html($consideration) . '</li>';
                     }
+                    $html_content .= '</ul></dd>';
                 }
-
-                if ($image_type) {
-                     // Adjust width and height as needed, or let TCPDF auto-size
-                    $pdf->Image($image_path, '', '', 150, 0, $image_type, '', 'T', false, 300, '', false, false, 0, false, false, false);
-                } else {
-                     $pdf->Write(0, '[Image could not be displayed - unsupported format or error reading file]', '', 0, 'L', true);
+                if (isset($framework['relevant_policies']) && is_array($framework['relevant_policies']) && !empty($framework['relevant_policies'])) {
+                    $html_content .= '<dt>Relevant Policies:</dt><dd><ul>';
+                    foreach ($framework['relevant_policies'] as $policy) {
+                        $html_content .= '<li>' . esc_html($policy) . '</li>';
+                    }
+                    $html_content .= '</ul></dd>';
                 }
-                $pdf->Ln(10);
-            } else {
-                $pdf->Write(0, '[Image not available or path incorrect]', '', 0, 'L', true);
-                $pdf->Ln(10);
+                $html_content .= '</dl>';
             }
-
-            // Output the PDF
-            // 'D' means download the PDF directly
-            // 'S' returns the PDF as a string
-            // 'F' saves to a local file
-            // 'I' sends inline to the browser
-            $report_content = $pdf->Output('ArchOpinion_Report.pdf', 'S');
-            return $report_content;
-
-        } catch (Exception $e) {
-            // Log the exception message or handle it as needed
-            return new WP_Error('pdf_generation_failed', 'Failed to generate PDF report: ' . $e->getMessage());
+            $html_content .= '</div>';
         }
+
+        // Plan-by-Plan Review
+        $planByPlanReview = isset($analysis_result['planByPlanReview']) && is_array($analysis_result['planByPlanReview']) ? $analysis_result['planByPlanReview'] : [];
+        if (!empty($planByPlanReview)) {
+            $html_content .= '<div class="section">
+            <h2>Plan-by-Plan Review</h2>';
+            foreach ($planByPlanReview as $plan) {
+                $html_content .= '<h3>' . (isset($plan['plan_type']) ? esc_html($plan['plan_type']) : 'Unnamed Plan') . '</h3>';
+                $html_content .= '<dl>';
+                if (isset($plan['positives']) && !empty($plan['positives'])) {
+                     $html_content .= '<dt>Positives:</dt><dd>';
+                     if(is_array($plan['positives'])) {
+                        $html_content .= '<ul>';
+                        foreach($plan['positives'] as $positive) $html_content .= '<li>' . esc_html($positive) . '</li>';
+                        $html_content .= '</ul>';
+                     } else {
+                        $html_content .= esc_html($plan['positives']);
+                     }
+                     $html_content .= '</dd>';
+                }
+                if (isset($plan['observations']) && !empty($plan['observations'])) {
+                    $html_content .= '<dt>Observations:</dt><dd>';
+                    if(is_array($plan['observations'])) {
+                        $html_content .= '<ul>';
+                        foreach($plan['observations'] as $observation) $html_content .= '<li>' . esc_html($observation) . '</li>';
+                        $html_content .= '</ul>';
+                     } else {
+                        $html_content .= esc_html($plan['observations']);
+                     }
+                    $html_content .= '</dd>';
+                }
+                if (isset($plan['compliance_notes']) && !empty($plan['compliance_notes'])) {
+                    $html_content .= '<dt>Compliance Notes:</dt><dd>' . esc_html($plan['compliance_notes']) . '</dd>';
+                }
+                $html_content .= '</dl>';
+            }
+            $html_content .= '</div>';
+        }
+
+        // Policy Compatibility Summary
+        $policyCompatibilitySummary = isset($analysis_result['policyCompatibilitySummary']) && is_array($analysis_result['policyCompatibilitySummary']) ? $analysis_result['policyCompatibilitySummary'] : [];
+        if (!empty($policyCompatibilitySummary)) {
+            $html_content .= '<div class="section">
+            <h2>Policy Compatibility Summary</h2>';
+            $html_content .= '<table><thead><tr><th>Policy Area</th><th>Status</th><th>Details</th><th>Recommendations</th></tr></thead><tbody>';
+            foreach ($policyCompatibilitySummary as $policy_item) {
+                $status_class = '';
+                if (isset($policy_item['status'])) {
+                    if (strtolower($policy_item['status']) == 'compliant') $status_class = 'status-compliant';
+                    elseif (strtolower($policy_item['status']) == 'partially compliant') $status_class = 'status-partially-compliant';
+                    elseif (strtolower($policy_item['status']) == 'non-compliant') $status_class = 'status-non-compliant';
+                }
+                $html_content .= '<tr>';
+                $html_content .= '<td>' . (isset($policy_item['policy_area']) ? esc_html($policy_item['policy_area']) : 'N/A') . '</td>';
+                $html_content .= '<td class="' . esc_attr($status_class) . '">' . (isset($policy_item['status']) ? esc_html($policy_item['status']) : 'N/A') . '</td>';
+                $html_content .= '<td>' . (isset($policy_item['details']) ? nl2br(esc_html($policy_item['details'])) : 'N/A') . '</td>';
+                $html_content .= '<td>' . (isset($policy_item['recommendations']) ? nl2br(esc_html($policy_item['recommendations'])) : 'N/A') . '</td>';
+                $html_content .= '</tr>';
+            }
+            $html_content .= '</tbody></table></div>';
+        }
+
+        // AI Recommendations Summary
+        $aiRecommendationSummary = isset($analysis_result['aiRecommendationSummary']) ? $analysis_result['aiRecommendationSummary'] : '';
+        if (!empty($aiRecommendationSummary)) {
+            $html_content .= '<div class="section">
+            <h2>AI Recommendations Summary</h2>';
+            $html_content .= '<p>' . nl2br(esc_html($aiRecommendationSummary)) . '</p>';
+            $html_content .= '</div>';
+        }
+
+        // Footer
+        $html_content .= '<footer>
+        <p>Disclaimer: This AI-generated report is for informational purposes only and should not be considered as professional architectural or planning advice. Always consult with qualified professionals and your local planning authority before proceeding with any development.</p>
+    </footer>
+</body>
+</html>';
+
+        // Save HTML content to file
+        file_put_contents($filepath, $html_content);
+
+        // Return the path and URL to the file
+        return [
+            'path' => $filepath,
+            'url'  => $upload_dir['baseurl'] . '/archopinion-reports/' . $filename
+        ];
     }
 }

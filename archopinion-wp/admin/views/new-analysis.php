@@ -43,7 +43,7 @@
             <!-- Analysis text will be inserted here -->
         </div>
         <p id="archopinion-report-download-link-container" style="margin-top:15px; display:none;">
-            <a href="#" id="archopinion-report-download-link" class="button button-secondary" download>Download Full Report (PDF)</a>
+            <a href="#" id="archopinion-report-download-link" class="button button-secondary" target="_blank">View Report</a>
         </p>
     </div>
      <div id="archopinion-error-message" style="display:none; margin-top:20px; padding:10px; border:1px solid red; background-color:#ffe0e0; color:red;">
