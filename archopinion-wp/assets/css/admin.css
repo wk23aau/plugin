@@ -1,0 +1,146 @@
+/* ArchOpinion Admin Styles */
+
+/* General form styling */
+.wrap #archopinion-new-analysis-form .form-table,
+.wrap #archopinion-settings-form .form-table {
+    margin-bottom: 20px;
+}
+
+#archopinion-image-preview-container {
+    border: 1px dashed #ccc;
+    padding: 10px;
+    min-height: 100px;
+    max-width: 320px; /* max-width of preview image + padding */
+    display: inline-block; /* Or block if you prefer it on its own line */
+}
+
+#archopinion-image-preview {
+    display: none; /* Hidden by default */
+    max-width: 300px;
+    max-height: 300px;
+    border: 1px solid #eee;
+}
+
+/* Spinner for analysis */
+#archopinion-analysis-spinner {
+    margin-top: 20px;
+    text-align: center;
+}
+#archopinion-analysis-spinner img {
+    vertical-align: middle;
+}
+
+/* Results container */
+#archopinion-analysis-results-container {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    background-color: #fff;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+#archopinion-analysis-output {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 4px;
+    white-space: pre-wrap; /* Preserve line breaks and spaces */
+    font-family: monospace;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+#archopinion-report-download-link-container {
+    margin-top: 15px;
+}
+
+/* Error messages */
+#archopinion-error-message {
+    margin-top: 20px;
+    padding: 10px 15px;
+    border: 1px solid #d63638;
+    background-color: #fbeaea;
+    color: #d63638;
+    border-radius: 3px;
+}
+#archopinion-error-message strong {
+    font-weight: bold;
+}
+
+
+/* Settings Page - Policy List */
+#archopinion-existing-policies-container {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    background-color: #fff;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+#archopinion-policy-list {
+    list-style: none; /* Removing default ul styles if desired */
+    padding-left: 0;
+}
+
+#archopinion-policy-list li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+#archopinion-policy-list li:last-child {
+    border-bottom: none;
+}
+
+#archopinion-policy-list li strong {
+    font-size: 1.1em;
+    display: block;
+    margin-bottom: 5px;
+}
+
+#archopinion-policy-list li p {
+    margin-bottom: 10px;
+    padding-left: 20px;
+    font-style: italic;
+    color: #555;
+}
+
+.archopinion-remove-policy-button .spinner {
+    float: none; /* Override WP default float */
+    margin: 0 0 0 5px; /* Adjust spacing as needed */
+    vertical-align: middle;
+}
+
+
+#archopinion-policy-feedback {
+    margin-top: 10px;
+    padding: 10px 15px;
+    border-radius: 3px;
+}
+
+#archopinion-policy-feedback.notice-success {
+    border: 1px solid #46b450;
+    background-color: #ecf7ed;
+    color: #2b7c32;
+}
+
+#archopinion-policy-feedback.notice-error {
+     border: 1px solid #d63638;
+    background-color: #fbeaea;
+    color: #d63638;
+}
+
+/* Make sure text area for policy text is large */
+textarea#archopinion_new_policy_text_id {
+    height: 100px; /* Or any other desired height */
+}
+
+/* Description text for settings fields */
+.form-table p.description {
+    font-size: 0.85em;
+    color: #777;
+}
+hr {
+    border: 0;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+}
